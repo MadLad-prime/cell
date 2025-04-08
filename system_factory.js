@@ -11,33 +11,6 @@ const systemRegistry = {
     'ca_brain': BrianBrain,          // NEW
     'l_system_tree': LSystemTree,
     'l_system_koch': KochSnowflake,  // NEW
-        // Define standard methods expected by lab.js
-        this.name = "Base System";
-   }
-   step() { /* Implement in subclass */ this.iteration++; }
-   reset() { /* Implement in subclass */ this.iteration = 0; }
-   getParameters() { return []; /* Subclass should define params */ }
-    getParamValue(paramId) { return undefined; /* Subclass implements */ }
-    setParamValue(paramId, value) { /* Subclass implements */ }
-    getIteration() { return this.iteration; }
-    getPopulation() { return '-'; /* Subclass implements if applicable */ }
-   getVisualizationHints() { return {}; /* Subclass provides render mode, cell size etc. */ }
-   getInteractionHint() { return 'Observing'; /* Subclass provides interaction details */ }
-   // Interaction handlers - optional, implement if system needs them
-   handleMouseDown(x, y, button) {}
-    handleMouseMove(x, y) {}
-   handleMouseUp(x, y) {}
-    onResize(newWidth, newHeight) { this.width = newWidth; this.height = newHeight; /* May need grid resize etc */ }
-    destroy() { /* Optional cleanup */ }
-    updateRendererBuffer(renderer) { /* Default: do nothing */ }
-}
-
-// --- Mapping from System ID to Class ---
-const systemRegistry = {
-    'ca_life': ConwayLife,
-    'ca_brain': BrianBrain,          // NEW
-    'l_system_tree': LSystemTree,
-    'l_system_koch': KochSnowflake,  // NEW
     'agent_slime': SlimeMold         // NEW
 };
 
