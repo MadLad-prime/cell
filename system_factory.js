@@ -3,7 +3,7 @@
 import { ConwayLife, BrianBrain } from './systems/cellular_automata.js';
 import { LSystemTree, KochSnowflake } from './systems/l_system.js';
 import { SlimeMold } from './systems/agent_system.js';
-import { GenerativeSystem } from './base_system.js';
+import { GenerativeSystem } from './base_system.js'; // Updated import
 
 // --- Mapping from System ID to Class ---
 const systemRegistry = {
