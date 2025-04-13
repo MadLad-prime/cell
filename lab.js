@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const playIcon = playPauseButton.querySelector('i');
     const stepButton = document.getElementById('step-button');
     const resetButton = document.getElementById('reset-button');
+    const clearButton = document.getElementById('clear-button');
     const speedSlider = document.getElementById('speed-slider');
     const speedValueDisplay = document.getElementById('speed-value');
     const paramsContainer = document.getElementById('dynamic-params');
@@ -21,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const gridToggle = document.getElementById('toggle-grid');
     const interactionHint = document.getElementById('interaction-hint');
 
-    if (!canvas || !systemTypeSelector || !playPauseButton || !stepButton || !resetButton || !speedSlider || !paramsContainer || !colorPaletteSelector) {
+    if (!canvas || !systemTypeSelector || !playPauseButton || !stepButton || !resetButton || !clearButton || !speedSlider || !paramsContainer || !colorPaletteSelector) {
         console.error("Fatal Error: Core UI element not found!");
         return;
     }
@@ -33,6 +34,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let animationFrameId = null;
     let lastTimestamp = 0;
     let targetInterval = 1000 / 10; // Corresponds to initial speed slider value (10 fps)
+    let redrawRequested = false;
+    let isMouseDown = false;
 
     // --- Initialize ---
     function initialize() {
@@ -70,6 +73,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         if (typeof currentSystem.getVisualizationHints === 'function'){
              renderer.updateHints(currentSystem.getVisualizationHints());
+        }
+
+        // Prepare pixel buffer for agent systems
+        if (systemId === 'agent_slime') {
+            renderer.preparePixelBuffer();
         }
 
         updateUI(); // Update buttons, info display
@@ -184,84 +192,73 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!animationFrameId) {
             console.log("Starting animation loop.");
             lastTimestamp = performance.now();
-            animationFrameId = requestAnimationFrame(animationLoop);
+            animationFrameId = requestAnimationFrame(animate);
         }
     }
 
     function stopAnimationLoop() {
         if (animationFrameId) {
+            console.log("Stopping animation loop.");
             cancelAnimationFrame(animationFrameId);
             animationFrameId = null;
-            console.log("Animation loop stopped.");
         }
     }
 
-    function animationLoop(timestamp) {
-        animationFrameId = requestAnimationFrame(animationLoop); // Schedule next frame
-
-        const deltaTime = timestamp - lastTimestamp;
-
-        // Only step simulation if running and enough time has passed
-        if (isRunning && deltaTime >= targetInterval) {
-            lastTimestamp = timestamp - (deltaTime % targetInterval); // Adjust timestamp to maintain interval
-            stepSimulation(); // Ensure the system steps
-            requestRedraw(); // Redraw after stepping
-        } else if (!isRunning) {
-            lastTimestamp = timestamp; // Prevent large jump on resume
-        }
-    }
-
-    function stepSimulation() {
-        if (currentSystem && typeof currentSystem.step === 'function') {
-             try{
+    function animate(timestamp) {
+        if (!lastTimestamp) lastTimestamp = timestamp;
+        const elapsed = timestamp - lastTimestamp;
+        
+        if (isRunning && elapsed >= targetInterval) {
+            if (currentSystem) {
                 currentSystem.step();
-                 updateInfoDisplay(); // Update iteration count etc.
-             } catch (e){
-                 console.error("Error during simulation step:", e);
-                 isRunning = false; // Stop on error
-                 updateUI();
+                updateUI();
+                requestRedraw();
             }
+            lastTimestamp = timestamp;
         }
+        
+        requestAnimationFrame(animate);
     }
 
     function requestRedraw() {
-        // Basic redraw implementation
-        // Could be smarter (only draw if needed, requestAnimationFrame decoupling)
-         if (renderer && currentSystem) {
-            renderer.render(currentSystem);
-         }
-     }
+        if (!redrawRequested) {
+            redrawRequested = true;
+            requestAnimationFrame(renderFrame);
+        }
+    }
 
+    function renderFrame(timestamp) {
+        if (renderer && currentSystem) {
+            renderer.render(currentSystem);
+        }
+        redrawRequested = false;
+    }
 
     // --- UI Updates & Event Handlers ---
     function updateUI() {
-         // Update Play/Pause button state
-         playPauseButton.classList.toggle('active', isRunning);
-         playIcon.className = isRunning ? 'fas fa-pause' : 'fas fa-play'; // Toggle icon
-
-         // Update speed display
+        // Update play/pause button
+        playPauseButton.textContent = isRunning ? '⏸' : '▶';
+        
+        // Update speed display
         speedValueDisplay.textContent = `${speedSlider.value} fps`;
-        targetInterval = 1000 / parseInt(speedSlider.value, 10);
-
-         // Update simulation info display
-         updateInfoDisplay();
-
-         // Update Interaction Hint
-         if (currentSystem && typeof currentSystem.getInteractionHint === 'function') {
-             interactionHint.textContent = `Mode: ${currentSystem.getInteractionHint()}`;
-         } else {
-             interactionHint.textContent = 'Mode: Observing';
-         }
-     }
+        
+        // Update system info
+        updateInfoDisplay();
+    }
 
     function updateInfoDisplay() {
-        if (!currentSystem || !iterationCountDisplay || !populationCountDisplay) return;
-        iterationCountDisplay.textContent = currentSystem.getIteration ? currentSystem.getIteration() : '-';
-        populationCountDisplay.textContent = currentSystem.getPopulation ? currentSystem.getPopulation() : '-';
-        // Update other system-specific info if elements exist
-     }
+        if (currentSystem) {
+            currentSystemNameDisplay.textContent = currentSystem.name;
+            iterationCountDisplay.textContent = currentSystem.getIteration();
+            populationCountDisplay.textContent = currentSystem.getPopulation();
+        } else {
+            currentSystemNameDisplay.textContent = 'No System';
+            iterationCountDisplay.textContent = '0';
+            populationCountDisplay.textContent = '-';
+        }
+    }
 
-     function setupEventListeners() {
+    function setupEventListeners() {
         // System Selector
          systemTypeSelector.addEventListener('change', (e) => {
             loadSystem(e.target.value);
@@ -269,15 +266,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Simulation Controls
         playPauseButton.addEventListener('click', () => {
-            isRunning = !isRunning;
-            if (isRunning) {
-                lastTimestamp = performance.now(); // Reset timer on play
-                startAnimationLoop(); // Ensure the animation loop starts
-            } else {
-                stopAnimationLoop(); // Stop the loop when paused
-            }
-            updateUI();
-            console.log(isRunning ? "Simulation Resumed" : "Simulation Paused");
+            togglePlayPause();
         });
         stepButton.addEventListener('click', () => {
             if (!isRunning) { // Only allow step when paused
@@ -294,8 +283,20 @@ document.addEventListener('DOMContentLoaded', () => {
                  console.log("Simulation Reset.");
             }
         });
+        clearButton.addEventListener('click', () => {
+            if (currentSystem) {
+                isRunning = false; // Pause on clear
+                // First clear the renderer
+                renderer.clear();
+                // Then reset the system to a blank state
+                currentSystem.reset(false); // Pass false to avoid randomization
+                updateUI();
+                requestRedraw();
+                console.log("Simulation Cleared.");
+            }
+        });
         speedSlider.addEventListener('input', () => {
-            updateUI(); // Update display and targetInterval
+            updateSpeed();
         });
 
          // Visualization Controls
@@ -313,19 +314,18 @@ document.addEventListener('DOMContentLoaded', () => {
          });
 
         // Canvas Interaction
-        let isDrawing = false;
         canvas.addEventListener('mousedown', (e) => {
             if (currentSystem && typeof currentSystem.handleMouseDown === 'function') {
                 const coords = getCanvasCoords(e);
                 if (coords) {
-                    isDrawing = true;
+                    isMouseDown = true;
                     currentSystem.handleMouseDown(coords.x, coords.y, e.button);
                     requestRedraw();
                  }
              }
          });
         canvas.addEventListener('mousemove', (e) => {
-            if (isDrawing && currentSystem && typeof currentSystem.handleMouseMove === 'function') {
+            if (isMouseDown && currentSystem && typeof currentSystem.handleMouseMove === 'function') {
                 const coords = getCanvasCoords(e);
                  if (coords) {
                     currentSystem.handleMouseMove(coords.x, coords.y);
@@ -335,8 +335,8 @@ document.addEventListener('DOMContentLoaded', () => {
              // Maybe update interaction hint based on hover?
          });
         canvas.addEventListener('mouseup', (e) => {
-            if (isDrawing) {
-                 isDrawing = false;
+            if (isMouseDown) {
+                 isMouseDown = false;
                 if (currentSystem && typeof currentSystem.handleMouseUp === 'function') {
                     const coords = getCanvasCoords(e);
                      if(coords) currentSystem.handleMouseUp(coords.x, coords.y);
@@ -354,30 +354,22 @@ document.addEventListener('DOMContentLoaded', () => {
              clearTimeout(resizeTimeout);
              resizeTimeout = setTimeout(() => {
                 console.log("Window resized.");
-                resizeCanvas();
-                // Notify system and renderer about resize
-                if (currentSystem && typeof currentSystem.onResize === 'function') {
-                    currentSystem.onResize(canvas.width, canvas.height);
-                }
-                 if (renderer) {
-                    renderer.onResize(); // Renderer might need internal adjustments
-                }
-                requestRedraw(); // Redraw after resize
+                handleResize();
              }, 250); // Debounce resize
         });
      }
 
      // --- Utility Functions ---
     function getCanvasCoords(event) {
-         const rect = canvas.getBoundingClientRect();
-        const x = Math.floor(event.clientX - rect.left);
-        const y = Math.floor(event.clientY - rect.top);
-         // Basic bounds check
-         if(x >= 0 && x < canvas.width && y >= 0 && y < canvas.height) {
-             return { x, y };
-         }
-        return null; // Click was outside canvas bounds
-     }
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        
+        return {
+            x: (event.clientX - rect.left) * scaleX,
+            y: (event.clientY - rect.top) * scaleY
+        };
+    }
 
      function resizeCanvas() {
          const container = canvas.parentElement;
@@ -392,6 +384,82 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return false;
      }
+
+    function handleResize() {
+        const container = canvas.parentElement;
+        const containerRect = container.getBoundingClientRect();
+        
+        // Update canvas size
+        canvas.width = containerRect.width;
+        canvas.height = containerRect.height;
+        
+        // Update renderer
+        if (renderer) {
+            renderer.resize(canvas.width, canvas.height);
+        }
+        
+        // Update current system
+        if (currentSystem) {
+            currentSystem.onResize(canvas.width, canvas.height);
+        }
+        
+        // Request redraw
+        requestRedraw();
+    }
+
+    function handleMouseInteraction(event) {
+        if (!currentSystem || !renderer) return;
+        
+        const rect = canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        
+        if (event.type === 'mousedown') {
+            isMouseDown = true;
+            if (currentSystem.onMouseDown) {
+                currentSystem.onMouseDown(x, y);
+            }
+        } else if (event.type === 'mousemove' && isMouseDown) {
+            if (currentSystem.onMouseMove) {
+                currentSystem.onMouseMove(x, y);
+            }
+        } else if (event.type === 'mouseup') {
+            isMouseDown = false;
+            if (currentSystem.onMouseUp) {
+                currentSystem.onMouseUp(x, y);
+            }
+        }
+        
+        requestRedraw();
+    }
+
+    function updateSpeed() {
+        targetInterval = 1000 / parseInt(speedSlider.value, 10);
+        speedValueDisplay.textContent = `${speedSlider.value} fps`;
+    }
+
+    function togglePlayPause() {
+        isRunning = !isRunning;
+        updateUI();
+        console.log(`Simulation ${isRunning ? 'Started' : 'Paused'}.`);
+    }
+
+    function stepSimulation() {
+        if (currentSystem && typeof currentSystem.step === 'function') {
+            currentSystem.step();
+            updateUI();
+            requestRedraw();
+        }
+    }
+
+    function clearSimulation() {
+        if (currentSystem && typeof currentSystem.clear === 'function') {
+            currentSystem.clear();
+            updateUI();
+            requestRedraw();
+            console.log("Simulation cleared.");
+        }
+    }
 
     // --- Start ---
     initialize();

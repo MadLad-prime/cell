@@ -29,11 +29,11 @@ export class ConwayLife extends GenerativeSystem {
 
      createGrid() { return createGrid(this.rows, this.cols); }
 
-    reset(randomize = true) {
-        super.reset();
+    reset(randomize = false) {
+        super.reset(randomize);
         this.grid = this.createGrid();
         this.nextGrid = this.createGrid();
-         if(randomize) this.randomize(this.params.initialDensity);
+        if(randomize) this.randomize(this.params.initialDensity);
         this.population = this.calculatePopulation();
         console.log("ConwayLife reset.");
     }
@@ -152,10 +152,11 @@ export class BrianBrain extends ConwayLife { // Inherit grid logic from Life
 
      // Brian's Brain States: 0 = OFF, 1 = FIRING, 2 = REFRACTORY
 
-    reset(randomize = true) {
-        super.reset(randomize); // Use parent reset (which uses current initialDensity)
-        console.log("Brian's Brain reset.");
-     }
+    reset(randomize = false) {
+        super.reset(randomize);
+        // Brian's Brain specific reset logic if needed
+        console.log("BrianBrain reset.");
+    }
 
     step() {
          this.population = 0; // Count firing cells

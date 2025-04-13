@@ -7,7 +7,10 @@ export class GenerativeSystem {
         this.name = "Base System";
     }
     step() { this.iteration++; }
-    reset() { this.iteration = 0; }
+    reset(randomize = false) { 
+        this.iteration = 0; 
+        console.log(`${this.name} reset to initial state.`);
+    }
     getParameters() { return []; }
     getParamValue(paramId) { return undefined; }
     setParamValue(paramId, value) {}

@@ -78,12 +78,9 @@ export default class CanvasRenderer {
          console.log("Renderer dimensions updated.");
 
          if (this.renderMode === 'agents') {
-            this.preparePixelBuffer();
-        } else {
-            this.imageData = null;
-            this.imageBuffer = null;
-        }
-     }
+             this.preparePixelBuffer();
+         }
+    }
 
      // Main render function - decides which specific render method to call
     render(system) {
@@ -203,6 +200,14 @@ export default class CanvasRenderer {
             this.preparePixelBuffer();
             if (!this.imageData) return;
         }
+        
+        // Clear the buffer with the background color
+        const bgColor = this.currentPalette.bg || this.params.backgroundColor;
+        const bgColorInt = this.colorToInt(bgColor);
+        for (let i = 0; i < this.imageBuffer.length; i++) {
+            this.imageBuffer[i] = bgColorInt;
+        }
+        
         const agents = system.getAgents ? system.getAgents() : null;
         if (!agents) return;
 
@@ -222,14 +227,14 @@ export default class CanvasRenderer {
          this.ctx.beginPath();
          switch(leafInfo.type) {
             case 'circle':
-                 ctx.arc(x, y, size, 0, Math.PI * 2);
+                 this.ctx.arc(x, y, size, 0, Math.PI * 2);
                  break;
             // Add other leaf shapes
              default: // Default to circle
-                 ctx.arc(x, y, size, 0, Math.PI * 2);
+                 this.ctx.arc(x, y, size, 0, Math.PI * 2);
                  break;
          }
-        ctx.fill();
+        this.ctx.fill();
     }
 
     updateAgentTrails(agentData) {
@@ -288,11 +293,67 @@ export default class CanvasRenderer {
     }
 
     clear() {
+        // Clear the canvas
         this.ctx.fillStyle = this.params.backgroundColor;
         this.ctx.fillRect(0, 0, this.width, this.height);
+        
+        // Clear the buffer if it exists
         if (this.imageBuffer) {
             this.imageBuffer.fill(0);
             this.ctx.putImageData(this.imageData, 0, 0);
         }
+        
+        // Reset the renderer state
+        this.lastRenderTime = 0;
+        this.frameCount = 0;
+        this.fps = 0;
+        
+        console.log("Canvas and buffer cleared.");
     }
+
+    // Convert a color string (like '#ff0000') to an integer (0xff0000ff)
+    colorToInt(color) {
+        // Default to black if color is invalid
+        if (!color) return 0xff000000;
+        
+        // If it's already a number, return it
+        if (typeof color === 'number') return color;
+        
+        // Handle hex colors
+        if (color.startsWith('#')) {
+            const hex = color.substring(1);
+            const r = parseInt(hex.substring(0, 2), 16);
+            const g = parseInt(hex.substring(2, 4), 16);
+            const b = parseInt(hex.substring(4, 6), 16);
+            return (0xff << 24) | (r << 16) | (g << 8) | b;
+        }
+        
+        // Handle rgba colors
+        if (color.startsWith('rgba')) {
+            const match = color.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
+            if (match) {
+                const r = parseInt(match[1]);
+                const g = parseInt(match[2]);
+                const b = parseInt(match[3]);
+                const a = Math.round(parseFloat(match[4]) * 255);
+                return (a << 24) | (r << 16) | (g << 8) | b;
+            }
+        }
+        
+        // Handle rgb colors
+        if (color.startsWith('rgb')) {
+            const match = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+            if (match) {
+                const r = parseInt(match[1]);
+                const g = parseInt(match[2]);
+                const b = parseInt(match[3]);
+                return (0xff << 24) | (r << 16) | (g << 8) | b;
+            }
+        }
+        
+        // Default to black if we can't parse the color
+        return 0xff000000;
+    }
+
+    // --- Methods for Lab Interface ---
 }

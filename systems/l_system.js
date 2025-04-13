@@ -1,5 +1,5 @@
 // --- systems/l_system.js ---
-import { GenerativeSystem } from '../system_factory.js';
+import { GenerativeSystem } from '../base_system.js';
 
 // Helper function from CA, maybe move to a utils file later
 function degreesToRadians(degrees) { return degrees * (Math.PI / 180); }
@@ -26,8 +26,8 @@ class LSystemBase extends GenerativeSystem {
         this.currentString = '';
      }
 
-    reset(){
-        super.reset();
+    reset(randomize = false){
+        super.reset(randomize);
         this.lines = [];
         try {
             this.generateSystem();

@@ -30,10 +30,10 @@
                 <label for="system-type">Select System:</label>
                 <select id="system-type">
                     <option value="ca_life">Cellular Automaton (Life)</option>
-                    <option value="ca_brain">Cellular Automaton (Brain)</option> <!-- NEW -->
+                    <option value="ca_brain">Cellular Automaton (Brain)</option>
                     <option value="l_system_tree">L-System (Tree)</option>
-                    <option value="l_system_koch">L-System (Koch Curve)</option> <!-- NEW -->
-                    <option value="agent_slime">Agent System (Slime Mold)</option> <!-- NEW -->
+                    <option value="l_system_koch">L-System (Koch Curve)</option>
+                    <option value="agent_slime">Agent System (Slime Mold)</option>
                 </select>
             </section>
 
@@ -43,32 +43,43 @@
                     <button id="play-pause-button"><i class="fas fa-play"></i></button>
                     <button id="step-button"><i class="fas fa-forward"></i></button>
                     <button id="reset-button"><i class="fas fa-undo"></i></button>
+                    <button id="clear-button"><i class="fas fa-eraser"></i></button>
                 </div>
                 <label for="speed-slider">Speed:</label>
                 <input type="range" id="speed-slider" min="1" max="60" value="10" step="1">
                 <span id="speed-value">10 fps</span>
             </section>
 
-             <section id="parameter-controls" class="control-section parameter-controls">
-                 <!-- (Dynamic Parameters structure remains the same) -->
+            <section id="parameter-controls" class="control-section parameter-controls">
                 <h3>Parameters (<span id="current-system-name">System</span>)</h3>
-                 <div id="dynamic-params"><p>Loading parameters...</p></div>
+                <div id="dynamic-params"><p>Loading parameters...</p></div>
             </section>
 
             <section class="control-section viz-controls">
-                <!-- (Visualization Controls remain the same) -->
-                 <h3>Visualization</h3>
-                 <div class="viz-option">... Palette ...</div>
-                 <div class="viz-option">... Grid Toggle ...</div>
-                 <div class="viz-option" id="extra-viz-options">
-                     <!-- Extra Viz controls added by specific systems if needed -->
-                 </div>
-             </section>
+                <h3>Visualization</h3>
+                <div class="viz-option">
+                    <label for="color-palette">Color Palette:</label>
+                    <select id="color-palette">
+                        <option value="default">Default</option>
+                        <option value="grayscale">Grayscale</option>
+                        <option value="rainbow">Rainbow</option>
+                    </select>
+                </div>
+                <div class="viz-option">
+                    <label for="toggle-grid">Show Grid:</label>
+                    <input type="checkbox" id="toggle-grid">
+                </div>
+                <div class="viz-option" id="extra-viz-options">
+                    <!-- Extra Viz controls added by specific systems if needed -->
+                </div>
+            </section>
 
             <section class="control-section info-display">
-                <!-- (Info Display structure remains the same) -->
-                 <h3>System Info</h3>
-                 <div id="simulation-info">... Iteration, Population ...</div>
+                <h3>System Info</h3>
+                <div id="simulation-info">
+                    <div>Iteration: <span id="iteration-count">0</span></div>
+                    <div>Population: <span id="population-count">-</span></div>
+                </div>
             </section>
 
             <footer class="panel-footer">
@@ -80,11 +91,11 @@
         <main class="simulation-area">
             <canvas id="simulation-canvas"></canvas>
             <div class="interaction-hint" id="interaction-hint">Interaction Mode: Ready</div>
-         </main>
+        </main>
 
-    </div> <!-- End Lab Container -->
+    </div>
 
-    <!-- Core Lab Logic (Type="module" is CRITICAL) -->
+    <!-- Core Lab Logic -->
     <script src="lab.js" defer type="module"></script>
 
 </body>

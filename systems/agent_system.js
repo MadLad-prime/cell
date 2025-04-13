@@ -1,7 +1,8 @@
 // --- systems/agent_system.js ---
-import { GenerativeSystem } from '../system_factory.js';
+import { GenerativeSystem } from '../base_system.js';
 
 function random(min, max) { return Math.random() * (max - min) + min; }
+function degreesToRadians(degrees) { return degrees * Math.PI / 180; }
 
 // --- Agent Class ---
 class Agent {
@@ -113,27 +114,14 @@ export class SlimeMold extends GenerativeSystem {
          this.reset();
     }
 
-    reset() {
-         super.reset();
-         this.agents = [];
-         // Initial agent placement (e.g., circle in center)
-         const centerX = this.width / 2;
-         const centerY = this.height / 2;
-         const spawnRadius = Math.min(this.width, this.height) * 0.05; // Small spawn radius
-
-        for (let i = 0; i < this.params.agentCount; i++) {
-             // Start in a ring or cluster? Start agents facing outwards
-            const angle = random(0, Math.PI * 2);
-             const radius = Math.sqrt(Math.random()) * spawnRadius; // Uniform distribution in circle
-            const startX = centerX + Math.cos(angle) * radius;
-            const startY = centerY + Math.sin(angle) * radius;
-            this.agents.push(new Agent(startX, startY, angle, this.params));
-            // OR start randomly:
-            // this.agents.push(new Agent(random(0,this.width), random(0,this.height), random(0, Math.PI * 2), this.params));
+    reset(randomize = false) {
+        this.iteration = 0;
+        this.agents = [];
+        if (randomize) {
+            this.initializeAgents();
         }
-         this.needsBufferUpdate = true; // Signal renderer to clear/update buffer
-        console.log(`SlimeMold reset with ${this.agents.length} agents.`);
-     }
+        console.log("Agent system reset to initial state.");
+    }
 
     step(renderer) { // Needs access to the renderer for the trail map
          if (!renderer || !renderer.imageData || !renderer.imageData.data) {
